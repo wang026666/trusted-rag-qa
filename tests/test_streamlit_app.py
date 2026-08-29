@@ -137,6 +137,18 @@ class BankingPlatformAppTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertIn("尚无可解释回答", _markdown_text(app))
 
+    def test_report_upload_can_be_cleared_from_the_current_session(self):
+        """Leaving an upload without a clear action must not retain it for the whole session."""
+        app = _run_app()
+        _button(app, "监管报表分析").click().run(timeout=30)
+        app.session_state["uploaded_report_meta"] = {"filename": "private.xlsx"}
+
+        self.assertIn("清除本次上传", {item.label for item in app.button})
+        _button(app, "清除本次上传").click().run(timeout=30)
+
+        self.assertFalse(app.exception)
+        self.assertNotIn("uploaded_report_meta", app.session_state)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -221,7 +221,7 @@ def answer_question(
 
     citations = [build_citation(item) for item in top]
     answer_citations = [build_citation(item) for item in answer_evidence]
-    llm_error = ""
+    llm_error_type = ""
     if llm is not None:
         try:
             generated = llm.generate(question, top, question_type)
@@ -249,7 +249,7 @@ def answer_question(
                     **_consistency_fields(consistency),
                 }
         except Exception as exc:
-            llm_error = f"{type(exc).__name__}: {exc}"
+            llm_error_type = type(exc).__name__
 
     answer = _extractive_answer(question, answer_evidence)
     consistency = validate_answer_consistency(answer, answer_evidence)
@@ -260,11 +260,10 @@ def answer_question(
         "confidence": _confidence(float(best_score)),
         "support_coverage": round(coverage, 4),
         "citations": answer_citations,
-        "generation_backend": "extractive_fallback" if llm_error else "extractive",
+        "generation_backend": "llm_error_fallback" if llm_error_type else "extractive",
+        "generation_error_type": llm_error_type,
         **_consistency_fields(consistency),
     }
-    if llm_error:
-        result["llm_error"] = llm_error
     return result
 
 
@@ -633,6 +632,7 @@ def answer_regulation_question(
         deterministic_answer, answer_evidence
     )
 
+    llm_error_type = ""
     if llm is not None:
         try:
             generated = llm.generate(
@@ -657,8 +657,8 @@ def answer_regulation_question(
                         generation_backend="llm",
                         claim_supports=claim_supports,
                     )
-        except Exception:
-            pass
+        except Exception as exc:
+            llm_error_type = type(exc).__name__
 
     return UnifiedAnswerResult(
         question=constraints.raw_question,
@@ -671,7 +671,8 @@ def answer_regulation_question(
         evidence_trace=None,
         consistency_status=str(deterministic_consistency["status"]),
         refusal_reason="",
-        generation_backend="deterministic_extractive",
+        generation_backend="llm_error_fallback" if llm_error_type else "deterministic_extractive",
+        generation_error_type=llm_error_type,
         claim_supports=claim_supports,
     )
 

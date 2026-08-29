@@ -183,6 +183,7 @@ class UnifiedAnswerResult:
     consistency_status: str
     refusal_reason: str
     generation_backend: str
+    generation_error_type: str = ""
     fact_value: float | str | None = None
     fact_unit: str = ""
     claim_supports: tuple[ClaimSupport, ...] = ()

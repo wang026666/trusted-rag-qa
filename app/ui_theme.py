@@ -126,6 +126,7 @@ def backend_label(value: object) -> str:
             "extractive": "本地证据抽取",
             "deterministic_extractive": "本地证据抽取",
             "extractive_fallback": "本地证据抽取（安全回退）",
+            "llm_error_fallback": "外部模型失败后本地回退",
             "llm": "大模型证据生成",
             "llm_consistency_fallback": "证据校验后回退",
             "refusal": "证据不足拒答",

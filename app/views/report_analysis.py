@@ -31,6 +31,12 @@ def _preflight_html(result: dict) -> str:
     """
 
 
+def _clear_current_upload() -> None:
+    """Drop application metadata and rotate the uploader key for this session."""
+    st.session_state.pop("uploaded_report_meta", None)
+    st.session_state["report_upload_nonce"] = int(st.session_state.get("report_upload_nonce", 0)) + 1
+
+
 def render_report_analysis(on_query: Callable[[str], None]) -> None:
     render_page_header(
         "监管统计报表分析",
@@ -38,17 +44,21 @@ def render_report_analysis(on_query: Callable[[str], None]) -> None:
     )
     with st.container(border=True):
         render_section_header("上传统计报表", "支持 CSV / XLSX，单文件不超过 20 MiB")
+        uploader_key = f"report_upload_{int(st.session_state.get('report_upload_nonce', 0))}"
         uploaded = st.file_uploader(
             "选择待预检的报表",
             type=["csv", "xlsx"],
             accept_multiple_files=False,
-            key="report_upload",
+            key=uploader_key,
             help="当前演示版仅检查文件名、格式和大小，不执行宏或公式。",
         )
         if uploaded is not None:
             result = report_preflight(uploaded.name, uploaded.size, uploaded.type)
             st.session_state["uploaded_report_meta"] = result
             st.markdown(_preflight_html(result), unsafe_allow_html=True)
+        if st.button("清除本次上传", key="clear_report_upload", use_container_width=True):
+            _clear_current_upload()
+            st.rerun()
 
     cards = (
         ("资本充足率", "待分析", "尚无可验证结果", "资"),

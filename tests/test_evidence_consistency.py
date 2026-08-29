@@ -1,7 +1,8 @@
 import unittest
 
-from src.generator.answerer import answer_question
+from src.generator.answerer import answer_question, answer_regulation_question
 from src.generator.consistency import extract_critical_claims, validate_answer_consistency
+from src.generator.query_parser import parse_question
 
 
 class FakeLLM:
@@ -10,6 +11,11 @@ class FakeLLM:
 
     def generate(self, question, evidence, question_type):
         return self.answer
+
+
+class FailingLLM:
+    def generate(self, question, evidence, question_type):
+        raise RuntimeError("provider unavailable")
 
 
 class EvidenceConsistencyTests(unittest.TestCase):
@@ -95,6 +101,33 @@ class EvidenceConsistencyTests(unittest.TestCase):
         self.assertEqual(result["generation_backend"], "llm")
         self.assertEqual(result["consistency_status"], "supported")
         self.assertEqual(result["consistency_score"], 1.0)
+
+    def test_generic_answerer_reports_a_safe_llm_failure_fallback(self):
+        """Removing the failure marker must not make a failed LLM look intentionally local."""
+        result = answer_question(
+            "商业银行核心一级资本充足率最低要求是多少？",
+            self.evidence,
+            min_score=0.1,
+            llm=FailingLLM(),
+        )
+
+        self.assertEqual(result["generation_backend"], "llm_error_fallback")
+        self.assertEqual(result["generation_error_type"], "RuntimeError")
+        self.assertNotIn("llm_error", result)
+
+    def test_regulation_answer_reports_a_safe_llm_failure_fallback(self):
+        """The final unified-engine path must expose external-model failure before degrading."""
+        result = answer_regulation_question(
+            parse_question("商业银行核心一级资本充足率最低要求是多少？"),
+            self.evidence,
+            min_score=0.1,
+            llm=FailingLLM(),
+        )
+
+        self.assertEqual(result.generation_backend, "llm_error_fallback")
+        self.assertEqual(result.generation_error_type, "RuntimeError")
+        self.assertTrue(result.answer.startswith("根据检索证据："))
+        self.assertIn("核心一级资本充足率不得低于5％", result.answer)
 
 
 if __name__ == "__main__":

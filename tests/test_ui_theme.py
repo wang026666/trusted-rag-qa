@@ -87,6 +87,7 @@ class TrustedRAGThemeTests(unittest.TestCase):
         self.assertEqual(consistency_label("supported"), "证据一致")
         self.assertEqual(backend_label("extractive"), "本地证据抽取")
         self.assertEqual(backend_label("deterministic_extractive"), "本地证据抽取")
+        self.assertEqual(backend_label("llm_error_fallback"), "外部模型失败后本地回退")
         self.assertEqual(intent_label("future_intent"), "待核验（future_intent）")
 
     def test_refusal_cannot_promote_retrieval_candidates_to_answer_evidence(self):

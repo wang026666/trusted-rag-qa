@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
+from src.retriever.index_integrity import inspect_index_directory
+
 
 DOMAIN_ORDER = ("资本监管", "流动性监管", "风险管理", "统计制度", "其他")
 FORMAT_ORDER = ("PDF", "XLS/XLSX", "DOC/DOCX", "其他")
@@ -155,14 +157,13 @@ def report_preflight(filename: str, size: int, mime_type: str) -> dict[str, Any]
 
 
 def index_health(index_dir: Path, summary: dict[str, Any]) -> dict[str, Any]:
-    bm25 = index_dir / "bm25_index.json"
-    vector = index_dir / "vector_index.json"
-    bm25_ready = bm25.is_file() and bm25.stat().st_size > 0
-    vector_ready = vector.is_file() and vector.stat().st_size > 0
+    integrity = inspect_index_directory(index_dir)
     return {
-        "ready": bm25_ready and vector_ready,
-        "bm25_ready": bm25_ready,
-        "vector_ready": vector_ready,
+        "ready": integrity["ready"],
+        "bm25_ready": integrity["bm25_ready"],
+        "vector_ready": integrity["vector_ready"],
+        "document_count": integrity["document_count"],
+        "errors": integrity["errors"],
         "failure_count": summary.get("failure_count"),
         "table_cell_count": summary.get("table_cell_count"),
     }

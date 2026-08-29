@@ -152,7 +152,10 @@ def test_index_health_requires_both_nonempty_indexes(tmp_path):
     """One present index must not mark the whole retrieval layer ready."""
     index_dir = tmp_path / "indexes"
     index_dir.mkdir()
-    (index_dir / "bm25_index.json").write_text("{}", encoding="utf-8")
+    (index_dir / "bm25_index.json").write_text(
+        json.dumps({"k1": 1.5, "b": 0.75, "documents": [{"chunk_id": "a", "text": "制度"}]}),
+        encoding="utf-8",
+    )
 
     health = index_health(index_dir, {"failure_count": 0, "table_cell_count": 12})
 
@@ -163,6 +166,40 @@ def test_index_health_requires_both_nonempty_indexes(tmp_path):
     assert health["table_cell_count"] == 12
 
 
+def test_index_health_rejects_parseable_but_empty_index_payloads(tmp_path):
+    """Replacing a real index with `{}` must disable retrieval rather than look ready."""
+    index_dir = tmp_path / "indexes"
+    index_dir.mkdir()
+    (index_dir / "bm25_index.json").write_text("{}", encoding="utf-8")
+    (index_dir / "vector_index.json").write_text("{}", encoding="utf-8")
+
+    health = index_health(index_dir, {"failure_count": 0, "table_cell_count": 12})
+
+    assert health["ready"] is False
+    assert health["bm25_ready"] is False
+    assert health["vector_ready"] is False
+
+
+def test_index_health_rejects_misaligned_bm25_and_vector_documents(tmp_path):
+    """Matching files with different chunk identities must not enable hybrid retrieval."""
+    index_dir = tmp_path / "indexes"
+    index_dir.mkdir()
+    (index_dir / "bm25_index.json").write_text(
+        json.dumps({"k1": 1.5, "b": 0.75, "documents": [{"chunk_id": "a", "text": "制度"}]}),
+        encoding="utf-8",
+    )
+    (index_dir / "vector_index.json").write_text(
+        json.dumps({"backend": "local_tfidf", "documents": [{"chunk_id": "b", "text": "制度"}]}),
+        encoding="utf-8",
+    )
+
+    health = index_health(index_dir, {})
+
+    assert health["bm25_ready"] is True
+    assert health["vector_ready"] is True
+    assert health["ready"] is False
+
+
 def test_runtime_context_reconciles_all_artifact_views(tmp_path):
     """Dashboard and knowledge views must consume one consistent artifact snapshot."""
     index_dir = tmp_path / "outputs" / "indexes"
@@ -171,8 +208,16 @@ def test_runtime_context_reconciles_all_artifact_views(tmp_path):
     index_dir.mkdir(parents=True)
     knowledge_dir.mkdir()
     evaluation_dir.mkdir()
-    (index_dir / "bm25_index.json").write_text("{}", encoding="utf-8")
-    (index_dir / "vector_index.json").write_text("{}", encoding="utf-8")
+    documents = [
+        {"chunk_id": "a", "text": "资本办法"},
+        {"chunk_id": "b", "text": "月度统计"},
+    ]
+    (index_dir / "bm25_index.json").write_text(
+        json.dumps({"k1": 1.5, "b": 0.75, "documents": documents}), encoding="utf-8"
+    )
+    (index_dir / "vector_index.json").write_text(
+        json.dumps({"backend": "local_tfidf", "documents": documents}), encoding="utf-8"
+    )
     (index_dir / "index_summary.json").write_text(
         json.dumps(
             {
