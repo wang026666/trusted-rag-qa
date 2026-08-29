@@ -17,16 +17,34 @@ htmlcov/
 venv/
 env/
 
-# Local runtime configuration and logs
+# Local runtime configuration, credentials, and logs
 .env
 .env.*
 !.env.example
 .streamlit/
+secrets.toml
+credentials.json
+service-account*.json
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.kdb
 *.log
 
-# Rebuildable local inputs and work directories. The packaged indexes under
-# outputs/indexes/ remain versioned because offline runtime depends on them.
+# Local data, derived knowledge assets, evaluation records, and work directories
 data/raw/
 data/processed/
+outputs/indexes/
+knowledge_base/
+evaluation/
 tmp/
 work/
+
+# Internal planning artifacts are not part of the public source release.
+docs/superpowers/

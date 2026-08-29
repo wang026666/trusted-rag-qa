@@ -62,3 +62,19 @@ def test_allows_source_code_and_public_release_documents(tmp_path: Path) -> None
     )
 
     assert _load_module().check_repository(tmp_path) == []
+
+
+def test_public_release_documents_describe_the_source_only_boundary() -> None:
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    gitignore = (PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
+
+    assert "源码公开版" in readme
+    assert "不包含预构建索引" in readme
+    assert "不包含开发评测数据" in readme
+    assert (PROJECT_ROOT / "DATA_AND_SECURITY.md").is_file()
+    assert (PROJECT_ROOT / "LICENSE").is_file()
+    assert "outputs/indexes/" in gitignore
+    assert "knowledge_base/" in gitignore
+    assert "evaluation/" in gitignore
+    assert "secrets.toml" in gitignore
+    assert "credentials.json" in gitignore
