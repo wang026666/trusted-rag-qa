@@ -1,4 +1,4 @@
-"""Regression checks against the shipped local index and real source facts."""
+"""Optional regression checks for a locally built index and locally available facts."""
 
 from __future__ import annotations
 
@@ -12,7 +12,14 @@ from src.generator.unified_engine import build_unified_engine
 class RealDataRegressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.engine = build_unified_engine(get_settings(), llm=None)
+        settings = get_settings()
+        required_indexes = (
+            settings.index_dir / "bm25_index.json",
+            settings.index_dir / "vector_index.json",
+        )
+        if not all(path.is_file() and path.stat().st_size > 0 for path in required_indexes):
+            raise unittest.SkipTest("需要本地构建的索引；源码公开版默认不提供该数据资产")
+        cls.engine = build_unified_engine(settings, llm=None)
 
     def test_real_regulation_query(self) -> None:
         result = self.engine.answer("商业银行大额风险暴露制度有哪些主要监管要求？")
