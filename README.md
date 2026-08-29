@@ -57,8 +57,11 @@ python scripts/build_index.py --attachments-dir /path/to/nfra_page_attachments_5
 执行全部核心与真实数据回归测试：
 
 ```bash
-python -m unittest discover -s tests -q
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
 ```
+
+`requirements-dev.txt` 在运行依赖之外显式加入 pytest；`pytest` 会同时收集 pytest 风格函数测试与 `unittest.TestCase` 测试，避免遗漏测试模块。
 
 真实数据回归覆盖：
 

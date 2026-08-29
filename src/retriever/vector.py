@@ -151,7 +151,6 @@ class SparseVectorIndex:
         query: str,
         top_k: int = 5,
         filters: dict[str, str] | None = None,
-        max_candidates: int = 1200,
     ) -> list[dict]:
         query_tokens = tokenize(query)
         query_vector = self._build_vector(query_tokens)
@@ -162,8 +161,8 @@ class SparseVectorIndex:
         candidate_ids: set[int] = set()
         for token in set(query_tokens):
             candidate_ids.update(self.postings.get(token, []))
-        scored: list[tuple[float, dict]] = []
-        for index in list(candidate_ids)[:max_candidates]:
+        scored: list[tuple[float, int, dict]] = []
+        for index in candidate_ids:
             doc = self.documents[index]
             if any(str(doc.get(key, "")) != str(value) for key, value in filters.items() if value):
                 continue
@@ -174,9 +173,9 @@ class SparseVectorIndex:
             if score > 0:
                 item = dict(doc)
                 item["vector_score"] = round(score, 6)
-                scored.append((score, item))
-        scored.sort(key=lambda pair: pair[0], reverse=True)
-        return [item for _, item in scored[:top_k]]
+                scored.append((score, index, item))
+        scored.sort(key=lambda pair: (-pair[0], pair[1]))
+        return [item for _, _, item in scored[:top_k]]
 
     def save(self, path: Path) -> None:
         write_json(path, {"documents": self.documents, "backend": "local_tfidf"})

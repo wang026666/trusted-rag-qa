@@ -38,6 +38,29 @@ class HybridRetrievalTests(unittest.TestCase):
         self.assertEqual(results[0]["chunk_id"], "a")
         self.assertGreater(results[0]["vector_score"], 0)
 
+    def test_sparse_vector_index_scores_all_matching_candidates_before_top_k(self):
+        """A high-id document must not disappear merely because the query is broad."""
+        chunks = [
+            {
+                "chunk_id": f"background-{index}",
+                "text": f"银行 常规资料 {index}",
+                "source_title": "背景资料",
+            }
+            for index in range(1201)
+        ]
+        chunks.append(
+            {
+                "chunk_id": "target",
+                "text": "银行 资本充足率 制度",
+                "source_title": "目标制度",
+            }
+        )
+        index = SparseVectorIndex(chunks)
+
+        results = index.search("银行 资本充足率 制度", top_k=1)
+
+        self.assertEqual(results[0]["chunk_id"], "target")
+
     def test_hybrid_retriever_fuses_bm25_vector_and_rerank_scores(self):
         chunks = [
             {
